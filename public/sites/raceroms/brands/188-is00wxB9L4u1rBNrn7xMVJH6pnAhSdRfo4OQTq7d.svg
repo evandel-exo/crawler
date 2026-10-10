@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   version="1.0"
+   width="357.32355"
+   height="58.788334"
+   id="svg2416"
+   sodipodi:docname="Mazda_logo.svg"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)">
+  <metadata
+     id="metadata8">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1280"
+     inkscape:window-height="705"
+     id="namedview6"
+     showgrid="false"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     inkscape:zoom="0.67094017"
+     inkscape:cx="179.32843"
+     inkscape:cy="29.394169"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg2416" />
+  <defs
+     id="defs2418" />
+  <g
+     id="layer1"
+     transform="translate(-54.671573,-0.60583663)">
+    <path
+       d="m 145.35906,16.981343 v 42.411169 h -19.34679 v -37.10024 c 0,0 -0.77316,-5.382228 -6.46165,-5.382228 H 109.47847 V 59.392512 H 90.673788 V 16.910044 H 73.686493 V 59.392512 H 54.671573 V 0.60583663 h 70.567537 c 19.72729,0 20.11995,16.37550637 20.11995,16.37550637 M 215.20205,0.60583663 h 45.95273 L 240.11222,16.910044 H 215.20378 V 0.60583663 M 163.88227,22.713432 h 28.04284 v -2.694429 c 0,0 0,-3.846819 -6.74314,-3.846819 H 149.47341 V 0.60583663 h 41.61597 c 21.70453,0 19.64214,19.13128737 19.64214,19.13128737 V 46.215501 L 269.22536,0.60583663 h 51.47962 c 23.37423,0 26.32273,13.45723037 26.32273,29.71501037 0,11.629993 -1.59847,29.071665 -24.98315,29.071665 h -42.59938 l -0.0365,-45.695888 -58.82567,45.695888 -56.70075,-0.01327 c -2.81298,0 -18.51105,0.961705 -18.51105,-18.928999 0,-18.920706 15.69807,-17.736816 18.51105,-17.736816 m 135.07821,20.374872 h 16.37395 c 10.45612,0 12.66445,-3.400787 12.66445,-12.636467 0,-9.262208 -2.20833,-13.540136 -12.66445,-13.540136 h -16.37395 v 26.176603 m -129.31674,1.591787 h 21.94952 l 0.0122,-8.613888 h -21.94953 c -1.80695,0 -5.32014,0 -5.32014,4.19668 0,4.25637 3.50101,4.417208 5.30799,4.417208 M 273.89049,43.088299 V 59.394164 H 228.59108 L 249.1784,43.088299 h 24.71209 M 365.094,22.713427 h 28.05674 v -2.694429 c 0,0 0,-3.846819 -6.75703,-3.846819 H 350.68682 V 0.60583663 h 41.62816 c 21.67847,0 19.62826,19.13128737 19.62826,19.13128737 v 39.642123 h -46.851 c -2.80949,0 -18.50759,0.961705 -18.50759,-18.928999 0,-18.920706 15.69983,-17.736816 18.50932,-17.736816 m 5.76147,21.966659 h 21.93909 l 0.0243,-8.613888 h -21.94952 c -1.80524,0 -5.33058,0 -5.33058,4.19668 0,4.25637 3.51143,4.417208 5.31668,4.417208"
+       id="path2396"
+       style="overflow:visible;fill:#0080c5"
+       inkscape:connector-curvature="0" />
+  </g>
+</svg>
