@@ -68,3 +68,9 @@ scripts/            # Asset download scripts
 ## Agent Workflow
 - Edit `.agents/skills/clone-website/` for cloning-workflow changes. It is the canonical skill used by Codex, Cursor, and OpenCode.
 - Keep `.claude/commands/clone-website.md` as a thin Claude Code bridge to the canonical skill; do not duplicate the workflow there.
+
+## Current Clones
+- **raceroms** — https://raceroms.com/ → `/` (homepage only). Components in `src/components/sites/raceroms/`, assets in `public/sites/raceroms/`, research and asset map in `docs/research/raceroms/`, reference screenshots in `docs/design-references/raceroms/`.
+  - `data.ts` is generated from the source's SSR payload; edit it directly rather than re-scraping.
+  - Site theme lives in `raceroms.css` under the `.raceroms` wrapper. Container classes and icon masks sit in `@layer components` so Tailwind utilities still override them; keep it that way.
+  - Links to routes that were not cloned point at `https://raceroms.com` (see `SOURCE` in `site.ts`).
