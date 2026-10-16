@@ -7,6 +7,7 @@ import { fetchReceivedInvoices, buildExpensesXml, sendExpensesClassification, to
 import { suggest, isValid, allowedFor, categoryLabels, typeLabels, invoiceTypeLabels, VAT_TYPES, type Suggestion } from './classify.ts';
 import { parseStatement, matchPayments } from './bank.ts';
 import { extract, ACCEPTED, type Extracted } from './receipts.ts';
+import { DEMO_USER, seedDemo, deleteDemo, demoFetch, demoMark, hasDemo } from './demo.ts';
 
 type Client = { id: number; name: string; vat: string; mydata_user: string | null; mydata_key_enc: string | null; upload_token: string };
 type InvoiceRow = { mark: string; client_id: number; issuer_vat: string; issuer_name: string; issuer_country: string; series: string; aa: string; issue_date: string; invoice_type: string; net: number; vat: number; gross: number; lines_json: string; status: string; suggestion_json: string | null; classification_mark: string | null; error: string | null };
@@ -142,6 +143,16 @@ td { padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: t
 .picker:focus-within .btn { outline: 3px solid var(--focus); outline-offset: 1px; }
 .drop { display: grid; place-items: center; gap: 8px; text-align: center; padding: 32px 16px; border: 2px dashed var(--line-2); border-radius: var(--radius); background: var(--sunken); cursor: pointer; }
 .drop .i { width: 32px; height: 32px; color: var(--accent); } .drop:hover, .drop:focus-within { border-color: var(--accent); } .drop .chosen { font-weight: 600; color: var(--accent); }
+.progress { height: 6px; min-width: 90px; background: var(--sunken); border: 1px solid var(--line); border-radius: 99px; overflow: hidden; }
+.progress span { display: block; height: 100%; background: var(--ok); }
+.bar { height: 10px; min-width: 120px; background: var(--sunken); border-radius: 4px; overflow: hidden; }
+.bar span { display: block; height: 100%; background: var(--accent); border-radius: 0 4px 4px 0; }
+.dropdown { position: relative; } .dropdown > summary { list-style: none; } .dropdown > summary::-webkit-details-marker { display: none; }
+.dropdown .menu { position: absolute; right: 0; top: 46px; width: min(360px, calc(100vw - 32px)); z-index: 10; }
+.head-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.grid-even { display: grid; gap: 16px; } @media (min-width: 900px) { .grid-even { grid-template-columns: 1fr 1fr; align-items: start; } }
+.card-title { padding: 14px 16px; border-bottom: 1px solid var(--line); font-weight: 650; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+td .sub { font-size: 12px; color: var(--muted); }
 .copy { display: flex; gap: 8px; } .copy input { flex: 1; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
 `;
 
@@ -149,7 +160,7 @@ function page(title: string, body: Raw, opts: { bare?: boolean } = {}) {
   const shell = opts.bare
     ? html`<div class="center"><div class="narrow">${body}</div></div>`
     : html`<header class="topbar"><div class="inner"><a class="brand" href="/"><span class="logo">N</span>N2X</a>
-        <nav><a href="/">Πελάτες</a><a href="/logout">Έξοδος</a></nav></div></header><main>${body}</main>`;
+        <nav><a href="/">Πίνακας ελέγχου</a><a href="/logout">Έξοδος</a></nav></div></header><main>${body}</main>`;
   return html`<!doctype html><html lang="el"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${title} · N2X</title><style>${new Raw(CSS)}</style></head><body>${shell}</body></html>`;
 }
@@ -167,6 +178,7 @@ const getClient = (id: number) => db.prepare('SELECT * FROM clients WHERE id = ?
 const AI_OFF_MARK = 'ANTHROPIC_API_KEY';
 
 function credsFor(c: Client): Creds {
+  if (c.mydata_user === DEMO_USER) return { user: DEMO_USER, key: '' };
   if (c.mydata_user && c.mydata_key_enc) return { user: c.mydata_user, key: decrypt(c.mydata_key_enc) };
   // Office-wide credentials of an accountant the client has authorised in myDATA.
   const { MYDATA_USER, MYDATA_KEY } = process.env;
@@ -206,12 +218,14 @@ async function sendInvoice(c: Client, r: InvoiceRow, chosen: Suggestion['lines']
   const bad = lines.find((l) => !isValid(inv.invoiceType, l.category, l.type, l.vatType));
   if (bad) return `Γραμμή ${bad.lineNumber}: διαλέξτε έγκυρο χαρακτηρισμό`;
   const creds = credsFor(c);
-  const res = await sendExpensesClassification(creds, buildExpensesXml(inv.mark, creds.entityVat, lines));
+  const res = creds.user === DEMO_USER ? { classificationMark: demoMark(), error: undefined } : await sendExpensesClassification(creds, buildExpensesXml(inv.mark, creds.entityVat, lines));
   if (res.error) {
     db.prepare(`UPDATE invoices SET status = 'error', error = ? WHERE mark = ?`).run(res.error, inv.mark);
     return res.error;
   }
-  db.prepare(`UPDATE invoices SET status = 'sent', classification_mark = ?, error = NULL WHERE mark = ?`).run(res.classificationMark ?? null, inv.mark);
+  // The final choice stays on the invoice for the reports.
+  const final: Suggestion = { source: r.suggestion_json ? (JSON.parse(r.suggestion_json) as Suggestion).source : 'history', lines: chosen };
+  db.prepare(`UPDATE invoices SET status = 'sent', classification_mark = ?, suggestion_json = ?, error = NULL WHERE mark = ?`).run(res.classificationMark ?? null, JSON.stringify(final), inv.mark);
   db.prepare('INSERT INTO history (issuer_vat, invoice_type, lines_json) VALUES (?, ?, ?)').run(inv.issuerVat, inv.invoiceType, JSON.stringify(chosen));
   // Pending invoices from the same supplier now follow the accountant's choice instead of the AI's guess.
   const { changes } = db.prepare(`UPDATE invoices SET status = 'new' WHERE client_id = ? AND issuer_vat = ? AND invoice_type = ? AND status = 'suggested'
@@ -362,6 +376,139 @@ function uploadsView(c: Client, origin: string) {
       : html`<div class="card empty"><strong>Δεν έχουν ανέβει έγγραφα ακόμη</strong>Μόλις ο πελάτης ανεβάσει αποδείξεις, θα εμφανιστούν εδώ με τα στοιχεία τους.</div>`}`;
 }
 
+// ---------- office dashboard ----------
+const MISSING_DOC = `u.extracted_json IS NOT NULL AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.client_id = u.client_id
+  AND i.issuer_vat = json_extract(u.extracted_json, '$.issuerVat') AND ABS(i.gross - json_extract(u.extracted_json, '$.total')) < 0.02)`;
+const stripSign = (label: string | undefined) => (label ?? '').replace(' (-) / (+)', '');
+const pct = (part: number, whole: number) => (whole ? Math.round((part / whole) * 100) : 0);
+
+function dashboardView() {
+  const clients = db.prepare(`SELECT c.*,
+      (SELECT COUNT(*) FROM invoices i WHERE i.client_id = c.id AND i.status IN ('new','suggested','error')) pending,
+      (SELECT COUNT(*) FROM invoices i WHERE i.client_id = c.id AND i.status = 'sent') sent,
+      (SELECT COUNT(*) FROM invoices i WHERE i.client_id = c.id AND i.status != 'cancelled') total,
+      (SELECT COALESCE(SUM(gross), 0) FROM invoices i WHERE i.client_id = c.id AND i.status != 'cancelled') gross,
+      (SELECT MAX(issue_date) FROM invoices i WHERE i.client_id = c.id) last_date,
+      (SELECT COUNT(*) FROM bank_lines b WHERE b.client_id = c.id AND b.amount < 0 AND b.matched_mark IS NULL) unpaid,
+      (SELECT COUNT(*) FROM uploads u WHERE u.client_id = c.id AND ${MISSING_DOC}) missing
+    FROM clients c ORDER BY pending DESC, name`).all() as (Client & { pending: number; sent: number; total: number; gross: number; last_date: string | null; unpaid: number; missing: number })[];
+  const ready = new Map<number, number>();
+  for (const row of db.prepare(`SELECT * FROM invoices WHERE status = 'suggested'`).all() as InvoiceRow[]) if (isReady(row)) ready.set(row.client_id, (ready.get(row.client_id) ?? 0) + 1);
+  const sum = (k: 'pending' | 'sent' | 'unpaid' | 'missing') => clients.reduce((t, c) => t + c[k], 0);
+
+  type Alert = { kind: Raw; cid: number; client: string; text: string; sub: string; amount: number | null; tab: string };
+  const alerts: Alert[] = [
+    ...(db.prepare(`SELECT i.issuer_name, i.issuer_vat, i.gross, i.error, c.id cid, c.name FROM invoices i JOIN clients c ON c.id = i.client_id WHERE i.status = 'error' ORDER BY i.issue_date DESC LIMIT 5`).all() as { issuer_name: string; issuer_vat: string; gross: number; error: string; cid: number; name: string }[])
+      .map((a) => ({ kind: html`<span class="badge b-bad">${icon('alert')}Απορρίφθηκε</span>`, cid: a.cid, client: a.name, text: a.issuer_name || `ΑΦΜ ${a.issuer_vat}`, sub: a.error, amount: a.gross, tab: 'invoices' })),
+    ...(db.prepare(`SELECT b.date, b.description, b.amount, c.id cid, c.name FROM bank_lines b JOIN clients c ON c.id = b.client_id WHERE b.amount < 0 AND b.matched_mark IS NULL ORDER BY b.date DESC LIMIT 5`).all() as { date: string; description: string; amount: number; cid: number; name: string }[])
+      .map((a) => ({ kind: html`<span class="badge b-warn">${icon('alert')}Πληρωμή χωρίς παραστατικό</span>`, cid: a.cid, client: a.name, text: a.description, sub: grDate(a.date), amount: a.amount, tab: 'bank' })),
+    ...(db.prepare(`SELECT u.filename, json_extract(u.extracted_json, '$.issuerName') issuer, json_extract(u.extracted_json, '$.total') total, c.id cid, c.name FROM uploads u JOIN clients c ON c.id = u.client_id WHERE ${MISSING_DOC} ORDER BY u.id DESC LIMIT 5`).all() as { filename: string; issuer: string | null; total: number | null; cid: number; name: string }[])
+      .map((a) => ({ kind: html`<span class="badge b-ai">${icon('upload')}Απόδειξη εκτός myDATA</span>`, cid: a.cid, client: a.name, text: a.issuer ?? a.filename, sub: a.filename, amount: a.total, tab: 'docs' })),
+  ];
+
+  const demoBox = hasDemo()
+    ? ''
+    : html`<div class="banner banner-ok" style="margin-bottom:16px">${icon('spark')}<div style="flex:1"><strong>Δείτε το N2X με δεδομένα επίδειξης</strong>
+        <p>Φορτώνει 4 πελάτες με παραστατικά, πληρωμές και αποδείξεις. Η αποστολή στο myDATA γίνεται εικονικά. Τα αφαιρείτε με ένα κλικ.</p></div>
+        <form method="post" action="/demo"><button class="btn btn-primary">Φόρτωση demo</button></form></div>`;
+
+  return html`<div class="page-head"><div><h1>Πίνακας ελέγχου</h1><div class="muted small" style="margin-top:4px">${new Date().toLocaleDateString('el-GR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</div></div>
+      <div class="head-actions">
+        <details class="dropdown"><summary class="btn btn-primary">+ Νέος πελάτης</summary>
+          <form method="post" action="/clients" class="card pad form-grid menu">
+            <label class="field">Επωνυμία<input name="name" required></label>
+            <label class="field">ΑΦΜ<input name="vat" required pattern="\\d{9}" inputmode="numeric" maxlength="9"></label>
+            <label class="field"><span>Χρήστης myDATA <span class="muted">(προαιρετικό)</span></span><input name="user" autocomplete="off"></label>
+            <label class="field"><span>Subscription key <span class="muted">(προαιρετικό)</span></span><input name="key" type="password" autocomplete="off"></label>
+            <p class="muted small" style="margin:0">Χωρίς δικά του στοιχεία, χρησιμοποιούνται τα στοιχεία του γραφείου ως εξουσιοδοτημένου λογιστή.</p>
+            <button class="btn btn-primary">Προσθήκη πελάτη</button>
+          </form></details>
+      </div></div>
+    ${demoBox}
+    <div class="stats">
+      <div class="card stat"><div class="label">Πελάτες</div><div class="value amount">${clients.length}</div></div>
+      <div class="card stat"><div class="label">Προς χαρακτηρισμό</div><div class="value amount">${sum('pending')}</div></div>
+      <div class="card stat"><div class="label">Έτοιμα για αποστολή</div><div class="value amount">${[...ready.values()].reduce((t, n) => t + n, 0)}</div></div>
+      <div class="card stat"><div class="label">Απεσταλμένα</div><div class="value amount">${sum('sent')}</div></div>
+      <div class="card stat"><div class="label">Πληρωμές χωρίς παραστατικό</div><div class="value amount">${sum('unpaid')}</div></div>
+      <div class="card stat"><div class="label">Αποδείξεις εκτός myDATA</div><div class="value amount">${sum('missing')}</div></div>
+    </div>
+
+    <div class="card table-wrap"><div class="card-title">Πελάτες <span class="count">${clients.length}</span></div>
+    ${clients.length
+      ? html`<table><tr><th>Πελάτης</th><th class="num">Εκκρεμή</th><th class="num">Έτοιμα</th><th>Πρόοδος χαρακτηρισμού</th><th class="num">Πληρωμές χ. παρ.</th><th class="num">Αποδ. εκτός myDATA</th><th class="num">Σύνολο εξόδων</th><th>Τελευταίο παρ.</th></tr>
+        ${clients.map((c) => html`<tr class="client-row">
+          <td><a href="/clients/${c.id}">${c.name}</a><div class="sub">ΑΦΜ ${c.vat}${c.mydata_user === DEMO_USER ? ' · demo' : ''}</div></td>
+          <td class="num">${c.pending ? html`<span class="badge b-warn">${c.pending}</span>` : html`<span class="badge b-ok">${icon('check')}0</span>`}</td>
+          <td class="num">${ready.get(c.id) ?? 0}</td>
+          <td><div class="progress" title="${c.sent} από ${c.total} απεσταλμένα"><span style="width:${pct(c.sent, c.total)}%"></span></div><div class="sub">${pct(c.sent, c.total)}% · ${c.sent}/${c.total}</div></td>
+          <td class="num">${c.unpaid ? html`<a href="/clients/${c.id}?tab=bank">${c.unpaid}</a>` : '0'}</td>
+          <td class="num">${c.missing ? html`<a href="/clients/${c.id}?tab=docs">${c.missing}</a>` : '0'}</td>
+          <td class="num">${eur(c.gross)}</td>
+          <td>${grDate(c.last_date)}</td></tr>`)}</table>`
+      : html`<div class="empty"><strong>Κανένας πελάτης ακόμη</strong>Πατήστε «+ Νέος πελάτης» ή φορτώστε τα δεδομένα επίδειξης.</div>`}
+    </div>
+
+    <h2>Χρειάζονται προσοχή <span class="count">${alerts.length}</span></h2>
+    ${alerts.length
+      ? html`<div class="card table-wrap"><table><tr><th>Θέμα</th><th>Πελάτης</th><th>Λεπτομέρειες</th><th class="num">Ποσό</th><th></th></tr>
+        ${alerts.map((a) => html`<tr><td>${a.kind}</td><td>${a.client}</td><td>${a.text}<div class="sub">${a.sub}</div></td>
+          <td class="num">${a.amount == null ? '—' : eur(a.amount)}</td><td class="num"><a href="/clients/${a.cid}?tab=${a.tab}">Άνοιγμα →</a></td></tr>`)}</table></div>`
+      : html`<div class="card empty"><strong>Όλα εντάξει</strong>Δεν υπάρχουν απορρίψεις, ασυμφωνίες πληρωμών ή αποδείξεις εκτός myDATA.</div>`}
+
+    ${hasDemo() ? html`<form method="post" action="/demo/delete" style="margin-top:24px" onsubmit="return confirm('Να αφαιρεθούν όλα τα δεδομένα επίδειξης;')"><button class="btn btn-secondary">Αφαίρεση δεδομένων επίδειξης</button></form>` : ''}`;
+}
+
+function reportsView(c: Client) {
+  const rows = db.prepare(`SELECT * FROM invoices WHERE client_id = ? AND status != 'cancelled'`).all(c.id) as InvoiceRow[];
+  if (!rows.length) return html`<div class="card empty"><strong>Δεν υπάρχουν δεδομένα ακόμη</strong>Οι αναφορές γεμίζουν μόλις φέρετε παραστατικά από το myDATA.</div>`;
+  const byCat = new Map<string, number>();
+  let pendingNet = 0;
+  for (const r of rows) {
+    if (r.status !== 'sent') { pendingNet += r.net; continue; }
+    const s = r.suggestion_json ? (JSON.parse(r.suggestion_json) as Suggestion) : undefined;
+    for (const l of JSON.parse(r.lines_json) as Line[]) {
+      const cat = s?.lines.find((x) => x.lineNumber === l.lineNumber)?.category || '—';
+      byCat.set(cat, (byCat.get(cat) ?? 0) + l.netValue);
+    }
+  }
+  const cats = [...byCat].sort((a, b) => b[1] - a[1]);
+  const catMax = Math.max(...cats.map(([, v]) => v), 1);
+  const catTotal = cats.reduce((t, [, v]) => t + v, 0);
+  const suppliers = db.prepare(`SELECT issuer_vat, MAX(issuer_name) name, COUNT(*) n, SUM(net) net, SUM(vat) vat, SUM(gross) gross, MAX(issue_date) last FROM invoices
+    WHERE client_id = ? AND status != 'cancelled' GROUP BY issuer_vat ORDER BY gross DESC LIMIT 10`).all(c.id) as { issuer_vat: string; name: string; n: number; net: number; vat: number; gross: number; last: string }[];
+  const months = db.prepare(`SELECT substr(issue_date, 1, 7) month, COUNT(*) n, SUM(net) net, SUM(vat) vat, SUM(gross) gross FROM invoices
+    WHERE client_id = ? AND status != 'cancelled' GROUP BY month ORDER BY month DESC LIMIT 12`).all(c.id) as { month: string; n: number; net: number; vat: number; gross: number }[];
+  const monthMax = Math.max(...months.map((m) => m.gross), 1);
+  const total = (k: 'net' | 'vat' | 'gross') => rows.reduce((t, r) => t + r[k], 0);
+  const monthName = (m: string) => new Date(`${m}-01T00:00:00`).toLocaleDateString('el-GR', { month: 'long', year: 'numeric' });
+
+  return html`
+    <div class="stats">
+      <div class="card stat"><div class="label">Παραστατικά</div><div class="value amount">${rows.length}</div></div>
+      <div class="card stat"><div class="label">Καθαρή αξία</div><div class="value amount">${eur(total('net'))}</div></div>
+      <div class="card stat"><div class="label">ΦΠΑ εισροών</div><div class="value amount">${eur(total('vat'))}</div></div>
+      <div class="card stat"><div class="label">Συνολική αξία</div><div class="value amount">${eur(total('gross'))}</div></div>
+    </div>
+    <div class="grid-even">
+      <div class="card table-wrap"><div class="card-title">Έξοδα ανά κατηγορία <span class="muted small">απεσταλμένα</span></div>
+        ${cats.length ? html`<table><tr><th>Κατηγορία</th><th class="num">Καθαρό</th><th class="num">%</th><th></th></tr>
+          ${cats.map(([cat, v]) => html`<tr><td>${stripSign(categoryLabels[cat]) || 'Χωρίς κατηγορία'}</td><td class="num">${eur(v)}</td><td class="num">${pct(v, catTotal)}%</td>
+            <td><div class="bar" title="${stripSign(categoryLabels[cat])}: ${eur(v)}"><span style="width:${Math.round((v / catMax) * 100)}%"></span></div></td></tr>`)}
+          ${pendingNet ? html`<tr><td class="muted">Δεν έχουν χαρακτηριστεί ακόμη</td><td class="num muted">${eur(pendingNet)}</td><td></td><td></td></tr>` : ''}</table>`
+          : html`<div class="empty">Δεν έχουν σταλεί χαρακτηρισμοί ακόμη.</div>`}
+      </div>
+      <div class="card table-wrap"><div class="card-title">Ανά μήνα</div>
+        <table><tr><th>Μήνας</th><th class="num">Παρ.</th><th class="num">ΦΠΑ</th><th class="num">Σύνολο</th><th></th></tr>
+        ${months.map((m) => html`<tr><td>${monthName(m.month)}</td><td class="num">${m.n}</td><td class="num">${eur(m.vat)}</td><td class="num">${eur(m.gross)}</td>
+          <td><div class="bar" title="${monthName(m.month)}: ${eur(m.gross)}"><span style="width:${Math.round((m.gross / monthMax) * 100)}%"></span></div></td></tr>`)}</table>
+      </div>
+    </div>
+    <h2>Κύριοι προμηθευτές</h2>
+    <div class="card table-wrap"><table><tr><th>Προμηθευτής</th><th class="num">Παραστατικά</th><th class="num">Καθαρό</th><th class="num">ΦΠΑ</th><th class="num">Σύνολο</th><th>Τελευταίο</th></tr>
+      ${suppliers.map((s) => html`<tr><td>${s.name || '—'}<div class="sub">ΑΦΜ ${s.issuer_vat}</div></td><td class="num">${s.n}</td><td class="num">${eur(s.net)}</td><td class="num">${eur(s.vat)}</td><td class="num">${eur(s.gross)}</td><td>${grDate(s.last)}</td></tr>`)}</table></div>`;
+}
+
 // ---------- routing ----------
 async function form(req: IncomingMessage, url: URL) {
   return new Request(url, { method: 'POST', headers: req.headers as HeadersInit, body: Readable.toWeb(req) as ReadableStream, duplex: 'half' } as RequestInit).formData();
@@ -430,26 +577,12 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
   }
   if (!loggedIn(req)) return redirect('/login');
 
-  if (p.length === 0) {
-    const clients = db.prepare(`SELECT c.*, (SELECT COUNT(*) FROM invoices i WHERE i.client_id = c.id AND i.status IN ('new','suggested','error')) pending FROM clients c ORDER BY name`).all() as (Client & { pending: number })[];
-    return send(page('Πελάτες', html`<div class="page-head"><div><h1>Πελάτες</h1><div class="muted small" style="margin-top:4px">${clients.length} ${clients.length === 1 ? 'πελάτης' : 'πελάτες'}</div></div></div>
-      <div class="grid-2">
-        ${clients.length
-          ? html`<div class="card table-wrap"><table><tr><th>Επωνυμία</th><th>ΑΦΜ</th><th class="num">Εκκρεμή</th></tr>
-            ${clients.map((c) => html`<tr class="client-row"><td><a href="/clients/${c.id}">${c.name}</a></td><td class="amount">${c.vat}</td>
-              <td class="num">${c.pending ? html`<span class="badge b-warn">${c.pending}</span>` : html`<span class="badge b-ok">${icon('check')}0</span>`}</td></tr>`)}</table></div>`
-          : html`<div class="card empty"><strong>Κανένας πελάτης ακόμη</strong>Προσθέστε τον πρώτο σας πελάτη από τη φόρμα.</div>`}
-        <form method="post" action="/clients" class="card pad form-grid">
-          <strong>Νέος πελάτης</strong>
-          <label class="field">Επωνυμία<input name="name" required></label>
-          <label class="field">ΑΦΜ<input name="vat" required pattern="\\d{9}" inputmode="numeric" maxlength="9"></label>
-          <label class="field"><span>Χρήστης myDATA <span class="muted">(προαιρετικό)</span></span><input name="user" autocomplete="off"></label>
-          <label class="field"><span>Subscription key <span class="muted">(προαιρετικό)</span></span><input name="key" type="password" autocomplete="off"></label>
-          <p class="muted small" style="margin:0">Χωρίς δικά του στοιχεία, χρησιμοποιούνται τα στοιχεία του γραφείου ως εξουσιοδοτημένου λογιστή.</p>
-          <button class="btn btn-primary">Προσθήκη πελάτη</button>
-        </form>
-      </div>`));
+  if (req.method === 'POST' && p[0] === 'demo') {
+    if (p[1] === 'delete') deleteDemo(); else seedDemo();
+    return redirect('/');
   }
+
+  if (p.length === 0) return send(page('Πίνακας ελέγχου', dashboardView()));
 
   if (p[0] === 'clients' && req.method === 'POST' && p.length === 1) {
     const f = await form(req, url);
@@ -468,7 +601,8 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
   if (req.method === 'POST' && p[2] === 'sync') {
     const f = await form(req, url);
     try {
-      const { invoices, cancelled } = await fetchReceivedInvoices(credsFor(c), toMyDataDate(String(f.get('from'))), toMyDataDate(String(f.get('to'))));
+      const creds = credsFor(c);
+      const { invoices, cancelled } = creds.user === DEMO_USER ? demoFetch(c.id) : await fetchReceivedInvoices(creds, toMyDataDate(String(f.get('from'))), toMyDataDate(String(f.get('to'))));
       const ins = db.prepare(`INSERT OR IGNORE INTO invoices (mark, client_id, issuer_vat, issuer_name, issuer_country, series, aa, issue_date, invoice_type, net, vat, gross, lines_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
       for (const i of invoices) ins.run(i.mark, c.id, i.issuerVat, i.issuerName, i.issuerCountry, i.series, i.aa, i.issueDate, i.invoiceType, i.net, i.vat, i.gross, JSON.stringify(i.lines));
       for (const m of cancelled) db.prepare(`UPDATE invoices SET status = 'cancelled' WHERE mark = ? AND client_id = ?`).run(m, c.id);
@@ -527,11 +661,12 @@ async function handle(req: IncomingMessage, res: ServerResponse) {
     ['invoices', 'Χαρακτηρισμός εξόδων', n(`SELECT COUNT(*) n FROM invoices WHERE client_id = ? AND status IN ('new','suggested','error')`)],
     ['bank', 'Τράπεζα', n('SELECT COUNT(*) n FROM bank_lines WHERE client_id = ? AND amount < 0 AND matched_mark IS NULL')],
     ['docs', 'Έγγραφα πελάτη', n('SELECT COUNT(*) n FROM uploads WHERE client_id = ?')],
+    ['reports', 'Αναφορές', 0],
   ] as const;
-  return send(page(c.name, html`<div class="page-head"><div><div class="crumb"><a href="/">Πελάτες</a> /</div><h1>${c.name}</h1>
+  return send(page(c.name, html`<div class="page-head"><div><div class="crumb"><a href="/">Πίνακας ελέγχου</a> / Πελάτες</div><h1>${c.name}</h1>
       <div class="muted small" style="margin-top:4px">ΑΦΜ ${c.vat}</div></div></div>
     <nav class="tabs">${tabs.map(([k, label, count]) => html`<a href="/clients/${c.id}?tab=${k}" ${new Raw(k === tab ? 'aria-current="page"' : '')}>${label}${count ? html`<span class="count">${count}</span>` : ''}</a>`)}</nav>
-    ${tab === 'bank' ? bankView(c) : tab === 'docs' ? uploadsView(c, origin) : invoicesView(c)}`));
+    ${tab === 'bank' ? bankView(c) : tab === 'docs' ? uploadsView(c, origin) : tab === 'reports' ? reportsView(c) : invoicesView(c)}`));
 }
 
 export function start(port: number) {

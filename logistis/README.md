@@ -9,6 +9,10 @@ AI back office for Greek accounting offices. One accountant login, many clients 
 2. **Τράπεζα.** Upload an e-banking CSV (Greek or English headers, `1.234,56` amounts). Each outgoing payment is matched to an invoice with the same gross amount, and payments with no invoice are listed.
 3. **Έγγραφα πελάτη.** Each client gets a private upload link (send it by Viber). Photos and PDFs of receipts are read by Claude, which extracts ΑΦΜ, date, total and category. The app flags any receipt that is **not** in myDATA.
 
+4. **Πίνακας ελέγχου & Αναφορές.** Office dashboard across all clients (pending, ready, sent, payments without an invoice, receipts missing from myDATA, a «Χρειάζονται προσοχή» list) and per-client reports: expenses by category, by month, top suppliers.
+
+**Demo mode:** «Φόρτωση demo» on the dashboard loads 4 sample clients with invoices, bank payments and receipts. Their myDATA calls are simulated and their AI suggestions are pre-written, so everything works without credentials or an API key. «Αφαίρεση δεδομένων επίδειξης» removes them along with their supplier history.
+
 ## Run
 
 Needs Node ≥ 22.18, which runs the `.ts` files directly with no build step.
