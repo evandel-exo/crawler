@@ -15,7 +15,7 @@ Needs Node ≥ 22.18, which runs the `.ts` files directly with no build step.
 
 ```bash
 npm install
-APP_PASSWORD=… APP_SECRET=… ANTHROPIC_API_KEY=… npm start   # http://localhost:3000
+node --env-file=.env src/server.ts   # http://localhost:4747 (put the variables below in .env)
 npm test         # unit tests + end-to-end test against a fake myDATA server
 npm run typecheck
 ```
@@ -27,7 +27,7 @@ npm run typecheck
 | `ANTHROPIC_API_KEY` | for AI suggestions and receipt reading; without it everything else still works and invoices are classified by hand |
 | `MYDATA_BASE_URL` | defaults to the **sandbox** `https://mydataapidev.aade.gr/`; production is `https://mydatapi.aade.gr/myDATA/` |
 | `MYDATA_USER`, `MYDATA_KEY` | optional office (accountant) credentials, used with `entityVatNumber` for clients that have no credentials of their own |
-| `DATA_DIR`, `PORT` | default `./data`, `3000` |
+| `DATA_DIR`, `PORT` | default `./data`, `4747` |
 
 Sandbox credentials: register at https://mydata-dev-register.azurewebsites.net (AADE's dev portal).
 

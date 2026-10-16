@@ -6,12 +6,13 @@ import type { Invoice, LineClassification } from './mydata.ts';
 const combos = table.combos as Record<string, Record<string, string[]>>;
 export const categoryLabels = table.categoryLabels as Record<string, string>;
 export const typeLabels = table.typeLabels as Record<string, string>;
+export const invoiceTypeLabels = table.invoiceTypeLabels as Record<string, string>;
 export const VAT_TYPES: Record<string, string> = {
-  VAT_361: 'Αγορές & δαπάνες στο εσωτερικό της χώρας',
-  VAT_362: 'Αγορές & εισαγωγές επενδ. αγαθών (πάγια)',
-  VAT_363: 'Λοιπές εισαγωγές εκτός επενδ. αγαθών (πάγια)',
+  VAT_361: 'Αγορές & δαπάνες εσωτερικού',
+  VAT_362: 'Αγορές παγίων',
+  VAT_363: 'Λοιπές εισαγωγές (εκτός παγίων)',
   VAT_364: 'Ενδοκοινοτικές αποκτήσεις αγαθών',
-  VAT_365: 'Ενδοκοινοτικές λήψεις υπηρεσιών άρθρ. 14.2.α',
+  VAT_365: 'Ενδοκοινοτικές λήψεις υπηρεσιών',
   VAT_366: 'Λοιπές πράξεις λήπτη',
 };
 

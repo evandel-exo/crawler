@@ -62,10 +62,12 @@ test('accountant flow: sync → classify → supplier memory → send-all → ba
   assert.equal(docs[0].headers['aade-user-id'], 'office');
   assert.equal(docs[0].headers['ocp-apim-subscription-key'], 'office-key');
 
-  // No AI key: both invoices wait for manual classification with a clear Greek message.
-  await until(async () => (await get('/clients/1')).split('ANTHROPIC_API_KEY').length === 3);
+  // No AI key: both invoices wait for manual classification, with one Greek banner explaining why.
+  await until(async () => !(await get('/clients/1')).includes('Σε επεξεργασία'));
   const page = await get('/clients/1');
-  assert.match(page, /Προς χαρακτηρισμό \(2\)/);
+  assert.match(page, /Προς χαρακτηρισμό <span class="count">2</);
+  assert.equal(page.split('ANTHROPIC_API_KEY').length, 2);
+  assert.match(page, /Χρειάζεται επιλογή/);
   assert.match(page, /E3_585_011 · Ενέργεια/);
 
   await post('/clients/1/invoices/400000000000001/send', new URLSearchParams({ l_1: 'category2_3|E3_585_011', v_1: 'VAT_361' }));
@@ -75,11 +77,11 @@ test('accountant flow: sync → classify → supplier memory → send-all → ba
 
   // The second DEH invoice now carries the accountant's own choice and can go out in bulk.
   const after1 = await get('/clients/1');
-  assert.match(after1, /από ιστορικό/);
+  assert.match(after1, /Από ιστορικό/);
   assert.match(after1, /Αποστολή 1 έτοιμων χαρακτηρισμών/);
   await post('/clients/1/send-all', new URLSearchParams());
   assert.equal(received.filter((r) => r.url.startsWith('/SendExpensesClassification')).length, 2);
-  assert.match(await get('/clients/1'), /Προς χαρακτηρισμό \(0\)[\s\S]*Απεσταλμένα \(2\)[\s\S]*9002/);
+  assert.match(await get('/clients/1'), /Προς χαρακτηρισμό <span class="count">0<[\s\S]*Όλα χαρακτηρισμένα[\s\S]*Απεσταλμένα <span class="count">2<[\s\S]*9002/);
 
   // Invalid combination never reaches myDATA.
   const invalid = await post('/clients/1/invoices/400000000000001/send', new URLSearchParams({ l_1: 'category2_1|E3_585_011' }));
