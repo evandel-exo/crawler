@@ -15,7 +15,7 @@ Needs Node ≥ 22.18, which runs the `.ts` files directly with no build step.
 
 ```bash
 npm install
-node --env-file=.env src/server.ts   # http://localhost:4747 (put the variables below in .env)
+node --env-file=.env src/main.ts   # http://localhost:4747 (put the variables below in .env)
 npm test         # unit tests + end-to-end test against a fake myDATA server
 npm run typecheck
 ```

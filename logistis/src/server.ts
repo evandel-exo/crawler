@@ -2,7 +2,6 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { Readable } from 'node:stream';
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import { db, DATA_DIR, encrypt, decrypt } from './db.ts';
 import { fetchReceivedInvoices, buildExpensesXml, sendExpensesClassification, toMyDataDate, type Creds, type Invoice, type Line } from './mydata.ts';
 import { suggest, isValid, allowedFor, categoryLabels, typeLabels, invoiceTypeLabels, VAT_TYPES, type Suggestion } from './classify.ts';
@@ -542,10 +541,4 @@ export function start(port: number) {
     if (!res.headersSent) res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('Σφάλμα διακομιστή');
   })).listen(port);
-}
-
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const port = Number(process.env.PORT ?? 4747);
-  start(port);
-  console.log(`N2X: http://localhost:${port}`);
 }
