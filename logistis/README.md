@@ -1,4 +1,4 @@
-# Λογιστής AI
+# N2X
 
 AI back office for Greek accounting offices. One accountant login, many clients (ΑΦΜ). Greek UI.
 

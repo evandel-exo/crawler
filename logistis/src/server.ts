@@ -149,13 +149,13 @@ td { padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: t
 function page(title: string, body: Raw, opts: { bare?: boolean } = {}) {
   const shell = opts.bare
     ? html`<div class="center"><div class="narrow">${body}</div></div>`
-    : html`<header class="topbar"><div class="inner"><a class="brand" href="/"><span class="logo">Λ</span>Λογιστής AI</a>
+    : html`<header class="topbar"><div class="inner"><a class="brand" href="/"><span class="logo">N</span>N2X</a>
         <nav><a href="/">Πελάτες</a><a href="/logout">Έξοδος</a></nav></div></header><main>${body}</main>`;
   return html`<!doctype html><html lang="el"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${title} · Λογιστής AI</title><style>${new Raw(CSS)}</style></head><body>${shell}</body></html>`;
+<title>${title} · N2X</title><style>${new Raw(CSS)}</style></head><body>${shell}</body></html>`;
 }
 
-const brandBlock = html`<div class="brand" style="justify-content:center;margin-bottom:20px;font-size:18px"><span class="logo">Λ</span>Λογιστής AI</div>`;
+const brandBlock = html`<div class="brand" style="justify-content:center;margin-bottom:20px;font-size:18px"><span class="logo">N</span>N2X</div>`;
 const errorPage = (msg: string, back: string) => page('Σφάλμα', html`<div class="banner banner-bad">${icon('alert')}<div><strong>Κάτι πήγε στραβά</strong><p>${msg}</p></div></div><a class="btn btn-secondary" href="${back}">← Πίσω</a>`);
 
 // ---------- auth ----------
@@ -547,5 +547,5 @@ export function start(port: number) {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const port = Number(process.env.PORT ?? 4747);
   start(port);
-  console.log(`Λογιστής AI: http://localhost:${port}`);
+  console.log(`N2X: http://localhost:${port}`);
 }
