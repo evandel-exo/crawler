@@ -622,17 +622,6 @@ def render_previews():
             ax.set_box_aspect((4800, 2600, 5300))
             ax.view_init(elev=22, azim=-58)
         ax.set_axis_off()
-        if explode:
-            names = {0: "1  שלד: עמוד פלדה, קורת יסוד, קורה, תקרה ומעקה ב\"מ",
-                     1: "2  סף טרומי", 2: "3  משקוף עיוור + מסגרות אלומיניום",
-                     3: "4  זיגוג", 4: "5  גמר: טיח, ריצוף ותקרה אקוסטית", 5: "6  מעקה צינורות ועמוד הצללה מפלדה"}
-            for g, txt in names.items():
-                vs = [(v.x, v.y, v.z) for gg, _, _, m in parts if gg == g for v in m.vertices]
-                dx, dy, dz = shift[g]
-                y = sum(v[1] for v in vs) / len(vs) + dy
-                z = max(v[2] for v in vs) + dz + 250
-                ax.text(450, y, z, txt, fontsize=11, ha="center", va="bottom",
-                        bbox={"fc": "white", "ec": "none", "alpha": 0.8, "pad": 1})
         fig.savefig(OUT / fname, dpi=170, bbox_inches="tight", facecolor="white")
         plt.close(fig)
 
