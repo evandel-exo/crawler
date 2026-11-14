@@ -179,40 +179,52 @@ RAIL_TOP = UP_FFL + 1050
 
 def vertical_section(P: Pen, full_labels: bool):
     s = P.s
-    # Section A-A cuts through the steel column (RHS 300x250x10, depth 300 = x -200..100).
+    # Section A-A cuts mid-bay through the fixed glazing.
     # --- ground: soil, base, grade beam, slab on grade
-    P.rect(-650, -700, -460, -260, "A-CUT-THIN", **hz(s, "earth"))
-    P.rect(-460, -700, -250, -450, "A-CUT-THIN", **hz(s, "earth"))
-    P.rect(150, -700, 600, -260, "A-CUT-THIN", **hz(s, "earth"))
-    P.rect(-650, -260, -460, -110, "A-CUT-THIN", **hz(s, "gravel"))
-    P.rect(-650, -110, -460, -80, "A-CUT-THIN", **hz(s, "screed"))  # sand bed
-    P.rect(-650, -80, -460, -20, "A-CUT", **hz(s, "pave"))           # 6cm concrete pavers
-    P.rect(-250, -80, -210, -20, "A-CUT", **hz(s, "pave"))
-    P.rect(-210, -80, -200, -20, "A-SEAL", rgb=SEAL_RGB)             # paving/column joint
-    P.rect(-250, -700, 150, -200, "A-CUT", **hz(s, "conc"))          # grade beam / pad
-    P.rect(150, -200, 600, -50, "A-CUT", **hz(s, "conc"))            # slab on grade
-    P.rect(150, -260, 600, -200, "A-CUT-THIN", **hz(s, "gravel"))
-    P.line((-250, -700), (-250, -450), "A-SEAL")                       # bitumen coat
-    # base: non-shrink grout, base plate, anchor bolts, concrete encasement
-    P.rect(-240, -200, 140, -170, "A-CUT-THIN", **hz(s, "screed"))
-    P.rect(-240, -170, 140, -150, "A-STEEL", rgb=STEEL_RGB)
-    for ax in (-222, 122):
-        P.line((ax, -130), (ax, -520), "A-HIDDEN")
-        P.rect(ax - 15, -138, ax + 15, -130, "A-STEEL", rgb=STEEL_RGB)  # nut + washer
-    P.rect(-250, -150, -200, -80, "A-CUT", **hz(s, "conc"))
-    P.rect(100, -150, 150, -50, "A-CUT", **hz(s, "conc"))
-    # shading post: free-standing galvanised SHS 80/80/4 on its own pad, open top so rain
-    # runs down inside it and out through a slot at the base onto the paving
-    P.rect(-460, -450, -250, -20, "A-CUT", **hz(s, "conc"))         # concrete pad flush with paving
-    P.rect(-410, -20, -210, -8, "A-STEEL", rgb=STEEL_RGB)           # base plate 200/200/12
-    for ax in (-385, -235):
-        P.line((ax, -8), (ax, -200), "A-HIDDEN")                  # chemical anchors M12
-    P.rect(-350, -8, -346, 2380, "A-STEEL", rgb=STEEL_RGB)          # cut walls
-    P.rect(-274, -8, -270, 2380, "A-STEEL", rgb=STEEL_RGB)
-    P.rect(-350, -8, -346, 22, "A-CUT-THIN", rgb=(255, 255, 255))   # drain slot in outer wall
-    P.line((-350, -8), (-350, 22), "A-CUT-THIN")
-    for y in (-8, 22):
-        P.line((-354, y), (-346, y), "A-CUT-THIN")
+    P.rect(-650, -700, 600, -260, "A-CUT-THIN", **hz(s, "earth"))
+    P.rect(-650, -260, -200, -110, "A-CUT-THIN", **hz(s, "gravel"))
+    P.rect(-650, -110, -200, -80, "A-CUT-THIN", **hz(s, "screed"))  # sand bed
+    P.rect(-650, -80, -210, -20, "A-CUT", **hz(s, "pave"))           # 6cm concrete pavers
+    P.rect(-200, -700, 100, -50, "A-CUT", **hz(s, "conc"))           # grade beam
+    P.rect(100, -200, 600, -50, "A-CUT", **hz(s, "conc"))            # slab on grade
+    P.rect(100, -260, 600, -200, "A-CUT-THIN", **hz(s, "gravel"))
+    P.line((-200, -700), (-200, -80), "A-SEAL")                        # bitumen coat
+    # interior floor: mortar + terrazzo tile
+    P.rect(60, -50, 600, -20, "A-CUT-THIN", **hz(s, "screed"))
+    P.rect(60, -20, 600, 0, "A-CUT", **hz(s, "tile"))
+    # threshold (precast concrete / stone sill) with drip groove
+    P.rect(-210, -50, 60, -30, "A-CUT-THIN", **hz(s, "screed"))
+    P.poly([(-210, -30), (-200, -30), (-200, -22), (-190, -22), (-190, -30), (60, -30), (60, 15),
+            (-50, 15), (-210, 5)], "A-CUT", **hz(s, "stone"))
+    # --- bottom rail (dark bronze aluminium)
+    alu_box(P, -50, 15, 50, 85)
+    P.rect(-50, 85, -11, 105, "A-ALUM", rgb=ALUM_RGB)       # fixed outer leg
+    P.rect(11, 85, 30, 105, "A-ALUM", rgb=ALUM_RGB)         # snap-in glazing bead
+    P.rect(-11, 92, -3, 105, "A-SEAL", rgb=SEAL_RGB)        # EPDM gasket
+    P.rect(3, 92, 11, 105, "A-SEAL", rgb=SEAL_RGB)
+    P.rect(-3, 85, 3, 90, "A-SEAL", rgb=(80, 80, 80))       # setting block
+    sealant(P, [(-50, 15), (-62, 11), (-50, 11)])            # silicone bead outside
+    # --- glass (cut, with break)
+    P.rect(-3, 90, 3, 2325, "A-GLASS", rgb=GLASS_RGB)
+    # --- transom (seen beyond at 880-945 is in other bays; this bay is full height)
+    # --- head: galvanised steel sub-frame + aluminium head
+    P.rect(-50, 2380, 50, 2400, "A-STEEL", rgb=STEEL_RGB,
+           holes=[[(-47, 2383), (47, 2383), (47, 2397), (-47, 2397)]])
+    alu_box(P, -50, 2335, 50, 2380)
+    P.rect(-50, 2315, -11, 2335, "A-ALUM", rgb=ALUM_RGB)
+    P.rect(11, 2315, 30, 2335, "A-ALUM", rgb=ALUM_RGB)
+    P.rect(-11, 2315, -3, 2328, "A-SEAL", rgb=SEAL_RGB)
+    P.rect(3, 2315, 11, 2328, "A-SEAL", rgb=SEAL_RGB)
+    sealant(P, [(-50, 2400), (-62, 2400), (-50, 2388)])
+    sealant(P, [(50, 2400), (62, 2400), (50, 2388)])
+    P.line((0, 2390), (0, 2470), "A-HIDDEN")                 # anchor screw into beam
+    P.line((-50, 2325), (-50, 2315), "A-ALUM")
+    # --- seen beyond: steel column (RHS 300x250x10) and the free-standing shading post in front of it
+    P.line((-200, 15), (-200, 2400), "A-BEYOND")
+    P.line((100, 0), (100, 2400), "A-BEYOND")
+    P.rect(-350, -8, -270, 2380, "A-BEYOND")                       # shading post SHS 80/80/4, open top
+    P.rect(-410, -20, -210, -8, "A-BEYOND")                         # its base plate
+    P.rect(-350, -8, -330, 22, "A-BEYOND")                          # drain slot at the base
     # interior acoustic ceiling: perforated metal tiles 600/600 + mineral wool, on T-grid hung from slab
     P.rect(100, 2400, 103, 2425, "A-STEEL", rgb=STEEL_RGB)           # wall angle L24 on beam face
     P.rect(100, 2400, 124, 2403, "A-STEEL", rgb=STEEL_RGB)
@@ -221,20 +233,6 @@ def vertical_section(P: Pen, full_labels: bool):
     for hx in (400,):
         P.rect(hx - 12, 2403, hx + 12, 2440, "A-STEEL", rgb=STEEL_RGB)   # main T-runner
         P.line((hx, 2440), (hx, BEAM_TOP), "A-HIDDEN")                 # hanger rod to slab
-    # interior floor: mortar + terrazzo tile up to column face
-    P.rect(100, -50, 600, -20, "A-CUT-THIN", **hz(s, "screed"))
-    P.rect(100, -20, 600, 0, "A-CUT", **hz(s, "tile"))
-    # --- steel column: two cut walls, hollow core, cap plate under the beam
-    P.rect(-200, -150, -190, 2380, "A-STEEL", rgb=STEEL_RGB)
-    P.rect(90, -150, 100, 2380, "A-STEEL", rgb=STEEL_RGB)
-    P.line((-190, -150), (90, -150), "A-CUT")
-    P.rect(-200, 2380, 100, 2400, "A-STEEL", rgb=STEEL_RGB)
-    for ax in (-160, 60):
-        P.line((ax, 2380), (ax, 2560), "A-HIDDEN")                 # chemical anchors into beam
-    sealant(P, [(-200, 2400), (-212, 2400), (-200, 2388)])
-    # --- seen beyond: aluminium jamb, threshold and sub-frame of the next bay
-    P.rect(-50, 15, 50, 2380, "A-BEYOND")
-    P.rect(-210, -30, 60, 15, "A-BEYOND")
     # --- RC edge beam + slab + parapet, cast monolithic in board formwork
     P.poly([(-200, 2400), (-180, 2400), (-180, 2415), (-165, 2415), (-165, 2400), (100, 2400),
             (100, BEAM_TOP), (600, BEAM_TOP), (600, SLAB_TOP), (-50, SLAB_TOP), (-50, PARAPET_TOP),
@@ -264,10 +262,9 @@ def vertical_section(P: Pen, full_labels: bool):
             ((-125, 3700), (-450, 3750), "מעקה בטון מטויח"),
             ((-125, RAIL_TOP - 30), (-450, 4350), "מעקה צינורות פלדה"),
             ((-100, 2800), (-450, 2800), "קורת שפה ב\"מ"),
-            ((-195, 1200), (-500, 1400), "עמוד פלדה"),
+            ((0, 1400), (-500, 1400), "זיגוג קבוע"),
             ((-310, 900), (-500, 900), "עמוד הצללה"),
             ((450, 2410), (650, 2200), "תקרה אקוסטית"),
-            ((0, 1600), (450, 1600), "מזוזה (מבט)"),
             ((-500, -50), (-450, -450), "אבן משתלבת"),
             ((450, -10), (650, 600), "ריצוף טרצו"),
             ((450, 3300), (650, 2900), "תקרה ב\"מ חשופה"),
@@ -284,55 +281,54 @@ def vertical_section(P: Pen, full_labels: bool):
 
 def head_labels(P: Pen):
     P.label((-212, 2520), (-480, 2600), "טיח צמנטי 2 ס\"מ + שליכט התזה\nבגוון בהיר (טיח חוץ)")
-    P.label((-120, 2420), (-480, 2490), "תחתית קורה: בטון חשוף\nבטביעת קרשים, צבוע")
+    P.label((-120, 2408), (-480, 2490), "תחתית קורה: בטון חשוף\nבטביעת קרשים, צבוע")
     P.label((-172, 2414), (-480, 2410), "אף מים 1.5/1.5 ס\"מ")
-    P.label((-206, 2396), (-480, 2340), "סיליקון במפגש טיח–עמוד")
-    P.label((-310, 2380), (-480, 2190), "עמוד הצללה – SHS 80/80/4 מגולוון\nראש פתוח, לא מחובר לקורה")
-    P.label((-195, 2250), (-480, 2260), "עמוד פלדה – צינור מלבני\n300/250/10 מגולוון וצבוע")
-    P.label((40, 2600), (600, 2640), "קורת שפה ב\"מ ב-30\nיצוקה מונוליטית עם התקרה")
-    P.label((60, 2500), (600, 2580), "2×2 ברגי עיגון כימיים M16")
-    P.label((30, 2390), (600, 2210), "פלטת ראש 20 מ\"מ מרותכת לעמוד")
-    P.label((95, 2300), (600, 2170), "דופן העמוד 10 מ\"מ (חתוך)")
-    P.label((0, 2250), (600, 2130), "מזוזת אלומיניום (מבט)")
+    P.label((-56, 2397), (-480, 2340), "סיליקון ניטרלי + פרופיל גב")
+    P.label((40, 2420), (600, 2640), "קורת שפה ב\"מ ב-30\nיצוקה מונוליטית עם התקרה")
+    P.label((30, 2390), (600, 2210), "משקוף עיוור – פרופיל\nפלדה מגולוונת 100/20/3")
+    P.label((0, 2440), (600, 2170), "בורג עיגון + דיבל @60 ס\"מ")
+    P.label((30, 2360), (600, 2120), "משקוף עליון – אלומיניום\nאנודייז ברונזה, ~45/100 מ\"מ")
+    P.label((7, 2322), (600, 2075), "אטם EPDM + סרגל זיגוג")
+    P.label((0, 2280), (-480, 2200), "זכוכית 6 מ\"מ מחוסמת\n(קבוע, זיגוג יחיד)")
+    P.label((-310, 2300), (-480, 2270), "עמוד הצללה SHS 80/80/4 (מבט)\nראש פתוח, לא מחובר לקורה")
     P.label((300, 2410), (600, 2330), "תקרה אקוסטית – פח מחורר 60/60")
     P.label((300, 2435), (600, 2380), "צמר סלעים 3 ס\"מ מעל האריחים")
     P.label((400, 2600), (600, 2470), "רשת T + מוטות תליה")
     P.label((112, 2410), (600, 2290), "זווית שוליים L24 מעוגנת לקורה")
+    P.label((100, 2250), (600, 2250), "עמוד פלדה (מבט)")
     P.text((-950, 2640), "חוץ", 3.5, TA.BOTTOM_LEFT)
     P.text((860, 2640), "פנים", 3.5, TA.BOTTOM_RIGHT)
     P.level(-370, HEAD + 10, "+2.40")
-    for a, b in ((-225, -200), (-200, 100)):
-        P.dim((a, 2400), (b, 2400), (0, 2650))
-    P.dim((100, 2380), (100, 2400), (150, 0), vertical=True)
-    P.dim((-225, 2380), (-270, 2380), (0, 2330))
-    P.breakline((-260, 2180), (260, 2180))
-    P.breakline((-260, 2680), (260, 2680))
+    for a, b in ((-225, -50), (-50, 50), (50, 100)):
+        P.dim((a, 2400), (b, 2400), (0, 2500))
+    P.dim((50, 2315), (50, 2400), (150, 0), vertical=True)
+    P.breakline((-420, 2160), (260, 2160))
+    P.breakline((-260, 2620), (260, 2620))
 
 
 def sill_labels(P: Pen):
-    P.label((-195, 120), (-700, 150), "עמוד פלדה מגולוון וצבוע (דופן חתוכה)")
-    P.label((-205, -40), (-700, 60), "מישק סיליקון בין ריצוף לעמוד")
-    P.label((-500, -50), (-700, -10), "אבן משתלבת 6 ס\"מ על מצע חול 3 ס\"מ")
-    P.label((-550, -180), (-700, -70), "מצע מהודק 15 ס\"מ")
-    P.label((-225, -110), (-700, -130), "בטון כיסוי לפלטת הבסיס")
-    P.label((-230, -160), (-700, -190), "פלטת בסיס עמוד 20 מ\"מ מרותכת לעמוד")
-    P.label((-235, -185), (-700, -370), "גראוט ללא התכווצות 3 ס\"מ")
-    P.label((-350, -300), (-700, -310), "יסוד בטון לעמוד ההצללה")
-    P.label((-310, 120), (-700, 110), "עמוד הצללה – מי גשם יורדים בתוכו")
-    P.label((-348, 8), (-700, 30), "חריץ ניקוז – יציאת מים לריצוף")
-    P.label((-260, -14), (-700, -250), "פלטת בסיס 200/200/12 + 4 ברגים כימיים M12")
-    P.label((0, 120), (620, 145), "מזוזת אלומיניום (מבט)")
-    P.label((40, 0), (620, 95), "סף טרומי של השדה הסמוך (מבט)")
+    P.label((0, 150), (-700, 160), "זכוכית 6 מ\"מ מחוסמת")
+    P.label((-7, 98), (-700, 90), "אטם EPDM")
+    P.label((-30, 50), (-700, 50), "משקוף תחתון – אלומיניום אנודייז ברונזה")
+    P.label((-58, 13), (-700, 0), "סיליקון ניטרלי")
+    P.label((-150, -10), (-700, -110), "סף בטון טרומי/אבן, בשיפוע לחוץ, עם אף מים")
+    P.label((-400, -50), (-700, -160), "אבן משתלבת 6 ס\"מ על מצע חול 3 ס\"מ")
+    P.label((-400, -180), (-700, -210), "מצע מהודק 15 ס\"מ")
+    P.label((-200, -300), (-700, -240), "ציפוי ביטומני")
+    P.label((-100, -330), (-700, -310), "קורת יסוד ב\"מ")
+    P.label((0, 89), (620, 160), "שמשה על קלוצי הנחה")
+    P.label((20, 95), (620, 120), "סרגל זיגוג")
     P.label((300, -10), (620, 40), "טרצו 2 ס\"מ + טיט 3 ס\"מ")
-    P.label((125, -100), (620, -60), "בטון כיסוי")
     P.label((400, -150), (620, -130), "מרצפת ב\"מ על הקרקע 15 ס\"מ")
-    P.label((122, -300), (620, -230), "4 ברגי עיגון M20 בקורת היסוד")
-    P.label((0, -330), (620, -310), "קורת יסוד ב\"מ")
+    P.label((400, -230), (620, -230), "מצע מהודק")
+    P.label((-310, 150), (-700, 125), "עמוד הצללה (מבט) – מי גשם יורדים בתוכו")
+    P.label((-340, 8), (-700, -50), "חריץ ניקוז בבסיס עמוד ההצללה")
     P.text((-640, 175), "חוץ", 3.5, TA.BOTTOM_LEFT)
     P.text((590, 175), "פנים", 3.5, TA.BOTTOM_RIGHT)
     P.level(400, FFL, "±0.00", left=False)
     P.level(-450, -20, "-0.02")
-    P.dim((-240, -170), (140, -170), (0, -360))
+    P.dim((-50, 15), (-50, 105), (-120, 0), vertical=True)
+    P.dim((-210, -50), (60, -50), (0, -360))
     P.breakline((-670, 190), (620, 190))
     P.breakline((-670, -400), (620, -400))
 
@@ -436,7 +432,7 @@ def elevation(P: Pen):
     P.line((L, 4950), (R, 4850), "A-HIDDEN")
     P.text((0, 4960), "קו יריעת הצללה מתוחה (מעל, מחוץ לגבולות הפרט)", 2.2, TA.BOTTOM_CENTER)
     # section markers
-    for (a, b, t) in (((0, -350), (0, 4700), "A"), ((-2850, 1500), (3450, 1500), "B")):
+    for (a, b, t) in (((800, -350), (800, 4700), "A"), ((-2850, 1500), (3450, 1500), "B")):
         P.line(a, b, "A-SYMB")
         for q in (a, b):
             P.circle(q, 4 * P.s, "A-SYMB")
@@ -509,8 +505,8 @@ sheet("SHEET-1", "חזית וחתך כללי", "קנ\"מ 1:25", 1, [
     ((342, 168), (130, 235), (-4500 - 200, 2300), 25, "חתך A-A כללי – קנ\"מ 1:25"),
 ])
 sheet("SHEET-2", "חתכים אנכיים A-A", "קנ\"מ 1:5", 2, [
-    ((210, 229), (380, 108), (-40, 2420), 5, "פרט 1 – חתך A-A דרך העמוד: ראש העמוד וקורת השפה – 1:5"),
-    ((210, 103), (380, 112), (-80, -100), 5, "פרט 2 – חתך A-A דרך העמוד: בסיס העמוד והריצוף – 1:5"),
+    ((210, 229), (380, 108), (-40, 2420), 5, "פרט 1 – חתך A-A דרך החלון: ראש החלון וקורת השפה – 1:5"),
+    ((210, 103), (380, 112), (-80, -100), 5, "פרט 2 – חתך A-A דרך החלון: סף ומפגש עם הריצוף – 1:5"),
 ])
 sheet("SHEET-3", "חתך אופקי B-B", "קנ\"מ 1:5", 3, [
     ((210, 165), (380, 225), (4000, 1500 - 40), 5, "פרט 3 – חתך B-B אופקי: עמוד ומזוזות – 1:5"),
