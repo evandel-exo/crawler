@@ -23,3 +23,10 @@
 ## בנייה מחדש
 `pip install ezdxf matplotlib python-bidi python-pptx pillow`
 `python3 build_drawings.py && python3 build_presentation.py`
+
+## תרגיל 2 – Re-engineering (`out-ex2/`)
+מניפולציה: עמוד הפלדה וחלון האלומיניום הוחלפו בעץ למינציה, והחיבורים שונו לפלטות פלדה נסתרות
+(להבים ודיבלים בעמוד, פלטות T וזוויות בחריצים במסגרת), עם סרט איטום מתפשח וסרגלי כיסוי מעץ במקום סיליקון.
+- `ex2-timber.dxf` – 4 גיליונות A3: חזית וחתך 1:25, חתכי A-A ראש/סף 1:5, חתך B-B אופקי 1:5, חתך C-C חיבורי העמוד 1:5
+- `ex2-timber-3D.dxf`, `ex2-timber-sheets.pdf`, `מצגת-תרגיל-2.pptx`
+- בנייה: `python3 build_ex2.py && python3 build_presentation_ex2.py`
