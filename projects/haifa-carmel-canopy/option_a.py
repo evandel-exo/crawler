@@ -6,8 +6,6 @@ import math
 from pathlib import Path
 
 import ezdxf
-from bidi.algorithm import get_display
-from ezdxf.enums import TextEntityAlignment as TA
 
 HERE = Path(__file__).parent
 doc = ezdxf.readfile(HERE / "site-original.dxf")
@@ -27,7 +25,7 @@ def W(u, v):
 
 
 LAYERS = {"P-CANOPY-GLASS": 4, "P-TRUSS": 30, "P-BEAM": 32, "P-PURLIN": 8, "P-COLUMN": 7, "P-CONNECTION": 5,
-          "P-PATH": 41, "P-PLANT": 3, "P-TREE": 94, "P-FURN": 34, "P-TEXT": 7}
+          "P-PATH": 41, "P-PLANT": 3, "P-TREE": 94, "P-FURN": 34}
 for n, c in LAYERS.items():
     if n not in doc.layers:
         doc.layers.add(n, color=c)
@@ -51,12 +49,6 @@ def fill(pts, layer, rgb=None, pattern=None, scale=1.0):
     else:
         h.set_pattern_fill(pattern, scale=scale, angle=math.degrees(A))
     h.paths.add_polyline_path([W(*p) for p in pts], is_closed=True)
-
-
-def text(u, v, s, h=450, align=TA.MIDDLE_CENTER):
-    t = msp.add_text(get_display(s), height=h, rotation=math.degrees(A),
-                     dxfattribs={"layer": "P-TEXT", "style": "ARIAL"})
-    t.set_placement(W(u, v), align=align)
 
 
 # --- roof: glass over the whole site, connection strip to the existing canopy along the south edge
@@ -112,21 +104,11 @@ for (u0, v0, u1, v1) in [(U[0] + 600, VN - 1300, U[3] - 300, VN - 800), (U[4] + 
                          (U[0] + 900, V[3] - 450, U[2] - 600, V[3] - 100), (U[4] + 900, V[3] - 450, U[6] - 600, V[3] - 100)]:
     poly(rect(u0, v0, u1, v1), "P-FURN")                                # benches: along the edge and the paths
 
-# --- labels
-text(UE / 2, VN + 3200, "חלופה א' – סככת זכוכית על מסבכי עץ, המשך הגריד הקיים", 600)
-text(UE / 2, -2300, "חיבור לסככה הקיימת – קורת מרזב משותפת על קו הגריד", 450)
-text(UE / 2, VN - 400, "ספסל לאורך שפת האתר", 380)
-text(UE + 400, 9000, "נשען על קיר הבניין", 380, TA.MIDDLE_LEFT)
-text((U[3] + U[4]) / 2, 14500, "טיילת מרכזית", 380)
-text(16000, (V[3] + V[4]) / 2, "מעבר מזרח–מערב", 380)
-text(16000, (V[0] + V[1]) / 2, "מעבר מהסככה הקיימת לכניסה לבניין", 380)
-text((U[7] + UE) / 2, 5800, "רחבת ישיבה / בית קפה", 420)
-text(4700, 9600 - 1200, "ערוגות ועצים בתוך משבצות הגריד", 330)
-text(21400, 18200 - 900, "פתח בגג מעל עץ", 330)
 doc.saveas(HERE / "haifa-carmel-option-A.dxf")
 
 # self-check: original content kept, new layers filled
 chk = ezdxf.readfile(HERE / "haifa-carmel-option-A.dxf").modelspace()
 assert len(chk.query('LINE[layer=="A-WALL"]')) == 101
+assert not chk.query("TEXT MTEXT") and len(chk.query("DIMENSION")) == 6
 assert len(chk.query('*[layer=="P-COLUMN"]')) == 2 * 15 + 3
 print("saved", len(chk))
