@@ -11,7 +11,7 @@ from ezdxf.enums import TextEntityAlignment as TA
 
 HERE = Path(__file__).parent
 doc = ezdxf.readfile(HERE / "site-original.dxf")
-doc.dxfversion = "R2018"   # file came in as R2000 (ANSI codepage, no true colour); R2018 keeps Hebrew + RGB fills
+doc.dxfversion = "R2018"   # file came in as R2000; R2018 keeps the Hebrew text as real Unicode
 msp = doc.modelspace()
 
 # local grid frame, measured from the purple lines (A-DETL colour 190)
@@ -43,11 +43,11 @@ def rect(u0, v0, u1, v1):
     return [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]
 
 
-def fill(pts, layer, rgb=None, pattern=None, scale=1.0):
-    h = msp.add_hatch(dxfattribs={"layer": layer})
-    if rgb:
-        h.set_solid_fill(rgb=rgb)
-        h.transparency = 0.55
+def fill(pts, layer, aci=None, pattern=None, scale=1.0):
+    # plain ACI colours / patterns only: true colour and transparency block saving to older DWG/DXF formats
+    h = msp.add_hatch(color=aci or 256, dxfattribs={"layer": layer})
+    if aci:
+        h.set_solid_fill(color=aci)
     else:
         h.set_pattern_fill(pattern, scale=scale, angle=math.degrees(A))
     h.paths.add_polyline_path([W(*p) for p in pts], is_closed=True)
@@ -61,7 +61,7 @@ def text(u, v, s, h=450, align=TA.MIDDLE_CENTER):
 
 # --- roof: glass over the whole site, connection strip to the existing canopy along the south edge
 poly(rect(U[0], V[0], UE, VN), "P-CANOPY-GLASS")
-fill(rect(U[0], V[0], UE, VN), "P-CANOPY-GLASS", rgb=(150, 205, 230))
+fill(rect(U[0], V[0], UE, VN), "P-CANOPY-GLASS", pattern="DOTS", scale=400)
 poly(rect(U[0], -1200, UE, 0), "P-CONNECTION")
 fill(rect(U[0], -1200, UE, 0), "P-CONNECTION", pattern="ANSI31", scale=20)
 
@@ -90,7 +90,7 @@ promenade = rect(U[3], V[1], U[4], VN)                        # N-S axis to the 
 cross_walk = rect(U[0], V[3], UE, V[4])                       # E-W link from the open west side to the building
 for p in (south_walk, promenade, cross_walk):
     poly(p, "P-PATH")
-    fill(p, "P-PATH", rgb=(220, 200, 160))
+    fill(p, "P-PATH", pattern="AR-SAND", scale=40)
 
 beds = [rect(U[0] + 600, V[1] + 600, U[3] - 600, V[3] - 600),         # SW
         rect(U[0] + 600, V[4] + 600, U[3] - 600, VN - 1800),          # NW
@@ -98,7 +98,7 @@ beds = [rect(U[0] + 600, V[1] + 600, U[3] - 600, V[3] - 600),         # SW
         rect(U[4] + 600, V[4] + 600, U[9] - 600, VN - 1800)]          # NE
 for b in beds:
     poly(b, "P-PLANT")
-    fill(b, "P-PLANT", rgb=(95, 158, 79))
+    fill(b, "P-PLANT", aci=83)
 for (u, v) in [(3800, 5900), (3800, 15000), (14500, 5900), (21400, 5900), (14500, 15000), (21400, 15000), (28000, 15000)]:
     msp.add_circle(W(u, v), 1800, dxfattribs={"layer": "P-TREE"})
 msp.add_circle(W(21400, 15000), 2600, dxfattribs={"layer": "P-CANOPY-GLASS", "linetype": "DASHED"})   # roof opening
@@ -129,4 +129,5 @@ doc.saveas(HERE / "haifa-carmel-option-A.dxf")
 chk = ezdxf.readfile(HERE / "haifa-carmel-option-A.dxf").modelspace()
 assert len(chk.query('LINE[layer=="A-WALL"]')) == 101
 assert len(chk.query('*[layer=="P-COLUMN"]')) == 2 * 15 + 3
+assert not any(h.dxf.hasattr("true_color") or h.dxf.hasattr("transparency") for h in chk.query("HATCH"))
 print("saved", len(chk))
